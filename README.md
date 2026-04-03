@@ -1,29 +1,32 @@
-# 1. Install PostmarketSO using pmbootstrap
+# PostmarketOS + WireGuard + Docker + Komodo Setup Guide
+
+## 1. Install PostmarketSO using pmbootstrap
 
 ```bash
 pmbootstrap init
 ```
+
 Select vendor & device codename
 
-## User interface
+### User interface
 
 I recommend gnome-mobile
 
-## Systemd
+### Systemd
 
 Select (type) "always"
 
-## Extra packages
+### Extra packages
 
 > wireguard-tools,iptables
 
-## Install
+### Install
 
 ```bash
 pmbootstrap install
 ```
 
-## Flash
+### Flash
 
 ```bash
 pmbootstrap flasher flash_rootfs
@@ -32,11 +35,12 @@ pmbootstrap flasher flash_kernel
 ```
 
 ALWAYS USE `FASTBOOT REBOOT` to ensure all data is written successfully
+
 ```bash
 fastboot reboot
 ```
 
-# 2. Networking setup
+## 2. Networking setup
 
 copy the wireguard profile onto the server.
 
@@ -61,6 +65,7 @@ PersistentKeepalive = 25
 ```
 
 Make sure systemd is the DNS resolver
+
 ```bash
 sudo systemctl enable --now systemd-resolved
 
@@ -70,17 +75,19 @@ sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
 Connect the profile on start-up
 
 op6 = profile name in /etc/wireguard/op6.conf
+
 ```bash
 sudo systemctl enable wg-quick@op6
 sudo systemctl start wg-quick@op6
 ```
 
 ### Make sure the date is correct (for encryption & DNSSEC)
+
 ```bash
 sudo date -s "2026-03-31 20:15:00"
 ```
 
-### Test the connection!
+### Test the connection
 
 ```bash
 resolvectl query google.com
@@ -88,13 +95,38 @@ resolvectl query google.com
 ping google.com
 ```
 
-# 3. Komodo setup (ARM, musl)
+## 3. Docker Install
 
-> Since pmOS is based on Alpine Linux, it uses the musl C-linker and many of the common binaries for linux distros don't work.
+```bash
+sudo apk add docker docker-cli-compose
+```
+
+### Fix Systemd service file
+
+On Alpine (PostmarketOS), the `containerd` service is located at `/usr/bin/containerd` but the service file gets created with `/usr/local/bin/containerd` or similar.
+
+Edit the service file and change the `ExecStart` path to `/usr/bin/containerd`:
+
+```bash
+sudo nano /usr/lib/systemd/system/containerd.service
+```
+
+### Enable and start the service
+
+```bash
+sudo systemctl enable --now containerd
+sudo systemctl enable --now docker
+```
+
+## 4. Komodo setup (ARM, musl)
+
+> Complete [3. Docker Install] first!
+
+Since pmOS is based on Alpine Linux, it uses the musl C-linker and many of the common binaries for linux distros don't work.
 
 To get around this, we'll just compile Komodos `Periphery` ourselves.
 
-## Install Rust
+### Install Rust
 
 I chose the nightly channel but I think you don't have to.
 
@@ -102,9 +134,10 @@ I chose the nightly channel but I think you don't have to.
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 ```
 
-## Build Komodo
+### Build Komodo
 
 also install gcc etc
+
 ```bash
 sudo apk add build-base pkgconf openssl openssl-dev openssl-libs-static
 ```
@@ -114,26 +147,30 @@ git clone https://github.com/moghtech/komodo
 ```
 
 In the repo, run
+
 ```bash
 cargo build -p komodo_periphery --release
 ```
+
 to build only the periphery binary.
 
 Then, copy the built binary to /usr/local/bin
+
 ```bash
 sudo cp target/release/periphery /usr/local/bin
 ```
 
+### Set up Systemd service
 
-## Set up Systemd service
 /etc/systemd/system/periphery.service
-```
+
+```systemd
 [Unit]
 Description=Agent to connect with Komodo Core
 
 [Service]
 Environment=HOME=/root
-ExecStart=/usr/local/bin/periphery --config-path /etc/komodo/periphery.config.toml
+ExecStart=/bin/sh -lc "/usr/local/bin/periphery --config-path /etc/komodo/periphery.config.toml"
 Restart=on-failure
 TimeoutStartSec=0
 
