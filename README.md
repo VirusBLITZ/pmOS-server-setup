@@ -118,6 +118,22 @@ sudo systemctl enable --now containerd
 sudo systemctl enable --now docker
 ```
 
+If your containers aren't able to access the network, reboot the device and try again.
+
+### Network test
+
+Test IP Routing:
+
+```bash
+docker run --rm alpine ping -c 3 8.8.8.8
+```
+
+Test DNS:
+
+```bash
+docker run --rm alpine ping -c 3 google.com
+```
+
 ## 4. Komodo setup (ARM, musl)
 
 > Complete [3. Docker Install] first!
