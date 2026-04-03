@@ -56,6 +56,14 @@ PrivateKey = QJ8ltkhGqsfV5iUg/uvs1TVFo7G6RnF3vYq7JYMsRVs=
 PostUp = resolvectl domain %i "~."
 PostUp = resolvectl default-route %i true
 
+# 1. Enable Masquerading (NAT) so Docker containers can reach the internet
+PostUp = iptables -t nat -A POSTROUTING -o wg0 -j MASQUERADE
+PostDown = iptables -t nat -D POSTROUTING -o wg0 -j MASQUERADE
+
+# 2. Allow forwarding traffic from the Wireguard interface
+PostUp = iptables -A FORWARD -i wg0 -j ACCEPT
+PostDown = iptables -D FORWARD -i wg0 -j ACCEPT
+
 [Peer]
 PublicKey = vDYDTimVuR0kFY2lE6j2JziUJ40NlULp4PZRwSwVdnY=
 PresharedKey = FbfBTj1dbJfyE7Ew/RRrJC6b85LgmIOX42w1XRB780M=
