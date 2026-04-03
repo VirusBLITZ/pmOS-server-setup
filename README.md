@@ -42,6 +42,12 @@ fastboot reboot
 
 ## 2. Networking setup
 
+disable nftables to resolve docker & wireguard routing conflicts
+
+´´´bash
+sudo systemctl disable nftables
+´´´
+
 copy the wireguard profile onto the server.
 
 ```bash
@@ -55,6 +61,14 @@ PrivateKey = QJ8ltkhGqsfV5iUg/uvs1TVFo7G6RnF3vYq7JYMsRVs=
 # Force systemd-resolved to route ALL DNS queries through wg0
 PostUp = resolvectl domain %i "~."
 PostUp = resolvectl default-route %i true
+
+# 1. Enable Masquerading (NAT) so Docker containers can reach the internet
+PostUp = iptables -t nat -A POSTROUTING -o %i -j MASQUERADE
+PostDown = iptables -t nat -D POSTROUTING -o %i -j MASQUERADE
+
+# 2. Allow forwarding traffic from the Wireguard interface
+PostUp = iptables -A FORWARD -i %i -j ACCEPT
+PostDown = iptables -D FORWARD -i %i -j ACCEPT
 
 [Peer]
 PublicKey = vDYDTimVuR0kFY2lE6j2JziUJ40NlULp4PZRwSwVdnY=
