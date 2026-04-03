@@ -44,9 +44,9 @@ fastboot reboot
 
 disable nftables to resolve docker & wireguard routing conflicts
 
-´´´bash
+```bash
 sudo systemctl disable nftables
-´´´
+```
 
 copy the wireguard profile onto the server.
 
